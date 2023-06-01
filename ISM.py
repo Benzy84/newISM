@@ -49,7 +49,7 @@ v01_initial_field = Field(torch.from_numpy(field))
 z = 0
 v01_initial_field.z = torch.tensor(z).to(device)
 del field, z
-
+a = 1
 v01_initial_field.length_x = v00_system.length_x  # real length in x dimension
 v01_initial_field.step = v01_initial_field.length_x / (v01_initial_field.field.shape[1] - 1)
 
