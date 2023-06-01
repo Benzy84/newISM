@@ -1,3 +1,5 @@
+
+
 from optical_elements import *
 import functions_gpu
 import propagators_gpu as prop
@@ -21,16 +23,16 @@ iris = Iris(radius=3)
 ###############################
 
 # Method 1: Create a field matrix
-field0 = functions_gpu.create_field(1, field_dim_x=512, field_dim_y=512)
+field1 = functions_gpu.create_field(1, field_dim_x=512, field_dim_y=512)
 
 # Method 2: Create a field matrix with points
-field1 = functions_gpu.create_field(2, field_dim_x=83, field_dim_y=44, num_x_points=1, num_y_points=1)
+field2 = functions_gpu.create_field(2, field_dim_x=83, field_dim_y=44, num_x_points=1, num_y_points=1)
 
 # Method 3: Create a field from an image
-field2 = functions_gpu.create_field(3, image_path='path_to_your_image.png')
+field3 = functions_gpu.create_field(3)
 
 # Method 4: Cut a part of the picture
-field3 = functions_gpu.create_field(4, image_path='path_to_your_image.png', crop_region=(upper, lower, left, right))
+field4 = functions_gpu.create_field(4)
 
 field = field3
 # #################################

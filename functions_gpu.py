@@ -140,7 +140,7 @@ def is_picklable(obj):
     return True
 
 
-def create_field(method_number, field_dim_x=512, field_dim_y=512, num_x_points=1, num_y_points=1, image_path=None, crop_region=None):
+def create_field(method_number, **kwargs):
     """
     Create a field matrix based on the specified option.
 
@@ -150,34 +150,38 @@ def create_field(method_number, field_dim_x=512, field_dim_y=512, num_x_points=1
         2: Create a field matrix with points
         3: Create a field from an image
         4: Cut a part of the picture
-    - field_dim_x, field_dim_y: The dimensions of the field matrix for the 'matrix' option.
-    - num_x_points, num_y_points: The number of points in the x and y dimensions for the 'points' option.
-    - image_path: The path to the image file for the 'image' and 'crop' options.
-    - crop_region: A tuple specifying the region to crop from the image for the 'crop' option.
+    - **kwargs: Additional arguments depending on the method:
+        - field_dim_x, field_dim_y: The dimensions of the field matrix for the 'matrix' and 'points' options. Default is 512 for both.
+        - num_x_points, num_y_points: The number of points in the x and y dimensions for the 'points' option. Default is 1 for both.
+        - image_path: The path to the image file for the 'image' and 'crop' options.
+        - crop_region: A tuple specifying the region to crop from the image for the 'crop' option.
 
     Returns:
     - field: The created field matrix.
     """
 
+    # Get the parameters from kwargs, or use default values
+    field_dim_x = kwargs.get('field_dim_x', 512)
+    field_dim_y = kwargs.get('field_dim_y', 512)
+    num_x_points = kwargs.get('num_x_points', 1)
+    num_y_points = kwargs.get('num_y_points', 1)
+    image_path = kwargs.get('image_path', None)
+    crop_region = kwargs.get('crop_region', None)
+
     if method_number == 1:
         # Option 1: Create a field matrix
-        # Create a matrix of ones with the specified dimensions
         field = torch.ones((field_dim_y, field_dim_x)).to(device)
-        # Set the center of the matrix to 0
         field[field_dim_x // 2, field_dim_y // 2] = 0
 
     elif method_number == 2:
         # Option 2: Create a field matrix with points
-        # Create a matrix of zeros with the specified dimensions
         field = torch.zeros((field_dim_y, field_dim_x)).to(device)
-        # Calculate the number of intervals and the number of pixels in each interval in the x and y dimensions
         num_of_x_intervals = num_x_points + 1
-        num_of_pix_in_x_interval = (field_dim_x - num_x_points) / num_of_x_intervals
+        num_of_pix_in_x_interval = torch.tensor((field_dim_x - num_x_points) / num_of_x_intervals).to(device)
         num_of_pix_in_x_interval = torch.ceil(num_of_pix_in_x_interval)
         num_of_y_intervals = num_y_points + 1
-        num_of_pix_in_y_interval = (field_dim_y - num_y_points) / num_of_y_intervals
+        num_of_pix_in_y_interval = torch.tensor((field_dim_y - num_y_points) / num_of_y_intervals).to(device)
         num_of_pix_in_y_interval = torch.ceil(num_of_pix_in_y_interval)
-        # Place points at regular intervals in the field matrix
         column = 0
         for x_point in range(num_x_points):
             column += num_of_pix_in_x_interval
@@ -189,23 +193,17 @@ def create_field(method_number, field_dim_x=512, field_dim_y=512, num_x_points=1
             column += 1
 
     elif method_number == 3:
-        # Option 3: Create a field from an image
-        # Read the image file and convert it to a grayscale image
-        field = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
-        # Convert the image to a tensor and move it to the device
-        field = torch.from_numpy(field).float().to(device)
+        #Option 3: Create a field from an image
+        field, _ = getimage()
 
     elif method_number == 4:
         # Option 4: Cut a part of the picture
-        # Read the image file and convert it to a grayscale image
-        field = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
-        # Crop the specified region from the image
-        field = field[crop_region[0]:crop_region[1], crop_region[2]:crop_region[3]]
-        # Convert the cropped image to a tensor and move it to the device
-        field = torch.from_numpy(field).float().to(device)
+        image, file_path = getimage()
+        left, upper, right, lower = get_points_to_crop(file_path)
+        field = image[upper:lower, left:right]
 
     else:
-        raise ValueError(f"Invalid method number: {method_number}")
+        raise ValueError(f"Invalid option: {method_number}")
 
     return field
 
