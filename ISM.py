@@ -36,7 +36,7 @@ def create_field(method, field_dim_x=512, field_dim_y=512, num_points=10, image_
     - max_dim: The maximum dimension for resizing the field matrix for the 'resize' option.
 
     Returns:
-    - field:  The created field matrix.
+    - field: The created field matrix.
     '''
 
     if method == 'crate field matrix':
