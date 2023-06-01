@@ -19,71 +19,51 @@ iris = Iris(radius=3)
 ### setting up field matrix ###
 ###############################
 ###############################
-#
-# ###################################
-# ## option 1: crate field matrix: ##
-# ###################################
-# max_dim = 100
-# dim_x = dim_y = max_dim
-# # dim_y = int(dim_x / 2)
-# field = np.ones([dim_y, dim_x])
-# # field = np.ones([dim_y, dim_x])
-# point = [dim_x // 2, dim_y // 2]
-# field[point[1], point[0]] = 0
-# del point, dim_x, dim_y, max_dim
-#
-#
-# ###############################################
-# ## option 2: crate field matrix with points: ##
-# ###############################################
-# dim_x = dim_y = 83
-# dim_y = 44
-#
-# num_x_points = 1
-# num_of_x_intervals = num_x_points + 1
-# num_of_pix_in_x_interval = (dim_x - num_x_points) / num_of_x_intervals
-# num_of_pix_in_x_interval = np.ceil(num_of_pix_in_x_interval)
-# dim_x = num_of_x_intervals * num_of_pix_in_x_interval + num_x_points
-# dim_x = int(dim_x)
-#
-# num_y_points = 1
-# num_of_y_intervals = num_y_points + 1
-# num_of_pix_in_y_interval = (dim_y - num_y_points) / num_of_y_intervals
-# num_of_pix_in_y_interval = np.ceil(num_of_pix_in_y_interval)
-# dim_y = num_of_y_intervals * num_of_pix_in_y_interval + num_y_points
-# dim_y = int(dim_y)
-#
-# field = np.zeros([dim_y, dim_x])
-#
-# del num_of_x_intervals, num_of_y_intervals, dim_x, dim_y
-#
-# column = 0
-# for x_point in np.arange(num_x_points):
-#     column += num_of_pix_in_x_interval
-#     row = 0
-#     for y_point in np.arange(num_y_points):
-#         row += num_of_pix_in_y_interval
-#         # print([int(row), int(column)])
-#         field[int(row), int(column)] = 1
-#         row += 1
-#     column += 1
-#
-# del x_point, y_point, row, column, num_x_points, num_y_points, num_of_pix_in_x_interval, num_of_pix_in_y_interval
+def create_field(method, field_dim_x=512, field_dim_y=512, num_points=10, image_path=None, crop_region=None, max_dim=None):
+    '''
+    Create a field matrix based on the specified option.
 
-#######################################
-## option 3: crate field from image: ##
-#######################################
-field, file_path = functions_gpu.getimage()
-del file_path
+    Parameters:
+    - method: The option to use for creating the field matrix. Options are:
+        'crate field matrix'
+        'crate field matrix with points'
+        'from image'
+        'from cropped image'
+    - field_dim: The dimension of the field matrix for the 'matrix' option.
+    - num_points: The number of points in the x and y dimensions for the 'points' option.
+    - image_path: The path to the image file for the 'image', 'crop', 'save', and 'resize' options.
+    - crop_region: A tuple specifying the region to crop from the image for the 'crop' option.
+    - max_dim: The maximum dimension for resizing the field matrix for the 'resize' option.
 
+    Returns:
+    - field: The created field matrix.
+    '''
 
-# #######################################
-# ## option 4: cut part of the pic: ##
-# #######################################
-# image, file_path = functions_gpu.getimage()
-# left, upper, right, lower = functions_gpu.get_points_to_crop(file_path)
-# field = image[upper:lower, left:right]
-# del left, upper, right, lower, image, file_path
+    if method == 'crate field matrix':
+        # Option 1: Create a field matrix
+        field = torch.ones((field_dim_y, field_dim_x)).to(device)
+        field[field_dim_x // 2, field_dim_y // 2] = 0
+
+    elif method == 'crate field matrix with points':
+        # Option 2: Create a field matrix with points
+        field = torch.zeros((num_points, num_points)).to(device)
+        field[num_points // 2, num_points // 2] = 1
+
+    elif method == 'image':
+        # Option 3: Create a field from an image
+        field = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+        field = torch.from_numpy(field).float().to(device)
+
+    elif method == 'crop':
+        # Option 4: Cut a part of the picture
+        field = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+        field = field[crop_region[0]:crop_region[1], crop_region[2]:crop_region[3]]
+        field = torch.from_numpy(field).float().to(device)
+
+    else:
+        raise ValueError(f"Invalid option: {method}")
+
+    return field
 
 
 # #################################
