@@ -4,7 +4,6 @@ from globals import *
 # pygame.init()
 
 
-
 def displayImage(screen, px, topleft, prior):
     # ensure that the rect always has positive width, height
     x, y = topleft
@@ -195,17 +194,43 @@ def create_field(method_number, **kwargs):
     elif method_number == 3:
         #Option 3: Create a field from an image
         field, _ = getimage()
+        field = torch.from_numpy(field)
+
+
 
     elif method_number == 4:
         # Option 4: Cut a part of the picture
         image, file_path = getimage()
         left, upper, right, lower = get_points_to_crop(file_path)
         field = image[upper:lower, left:right]
+        field = torch.from_numpy(field)
+
 
     else:
         raise ValueError(f"Invalid option: {method_number}")
 
     return field
 
+import tkinter as tk
+from tkinter import filedialog
+from PIL import Image
+
+def save_field_as_image(field):
+    # Convert the field to a numpy array
+    field = field.cpu().numpy()
+
+    # Normalize the field to the range [0, 255]
+    field = ((field - field.min()) * (255 / (field.max() - field.min()))).astype(np.uint8)
+
+    # Create an image from the array
+    img = Image.fromarray(field)
+
+    # Open a file dialog for saving the image
+    root = tk.Tk()
+    root.withdraw()
+    file_path = filedialog.asksaveasfilename(defaultextension=".png")
+
+    # Save the image
+    img.save(file_path)
 
 

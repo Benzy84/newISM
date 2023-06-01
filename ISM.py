@@ -35,36 +35,9 @@ field3 = functions_gpu.create_field(3)
 field4 = functions_gpu.create_field(4)
 
 field = field3
-# #################################
-# ## option: save field as image ##
-# #################################
-# z = (field * 255).astype(np.uint8)
-# img = Image.fromarray(z, mode='L')
-# img.save(file_path + "smallnum6.jpeg")
-#
-# del left, upper, right, lower
-# del file_path, image
 
-
-# ##################
-# ## resize image ##
-# ##################
-# dim_y, dim_x = field.shape
-# max_dim = int(1 * np.max(field.shape))
-# if dim_y > dim_x:
-#     ratio = dim_x / dim_y
-#     dim_y = max_dim
-#     dim_x = int(np.round((ratio * max_dim)))
-# else:
-#     ratio = dim_y / dim_x
-#     dim_x = max_dim
-#     dim_y = int(np.round(ratio * max_dim))
-#
-# dim = (dim_x, dim_y)
-# field = cv2.resize(field, dim, interpolation=cv2.INTER_AREA)
-# field[field > 0.3] = 1
-# field[field <= 0.3] = 0
-# del max_dim, ratio, dim, dim_x, dim_y
+# Save teh field as png image
+functions_gpu.save_field_as_image(field)
 
 start = time.time()
 
