@@ -19,53 +19,20 @@ iris = Iris(radius=3)
 ### setting up field matrix ###
 ###############################
 ###############################
-def create_field(method, field_dim_x=512, field_dim_y=512, num_points=10, image_path=None, crop_region=None, max_dim=None):
-    '''
-    Create a field matrix based on the specified option.
 
-    Parameters:
-    - method: The option to use for creating the field matrix. Options are:
-        'crate field matrix'
-        'crate field matrix with points'
-        'from image'
-        'from cropped image'
-    - field_dim: The dimension of the field matrix for the 'matrix' option.
-    - num_points: The number of points in the x and y dimensions for the 'points' option.
-    - image_path: The path to the image file for the 'image', 'crop', 'save', and 'resize' options.
-    - crop_region: A tuple specifying the region to crop from the image for the 'crop' option.
-    - max_dim: The maximum dimension for resizing the field matrix for the 'resize' option.
+# Method 1: Create a field matrix
+field0 = functions_gpu.create_field(1, field_dim_x=512, field_dim_y=512)
 
-    Returns:
-    - field: The created field matrix.
-    '''
+# Method 2: Create a field matrix with points
+field1 = functions_gpu.create_field(2, field_dim_x=83, field_dim_y=44, num_x_points=1, num_y_points=1)
 
-    if method == 'crate field matrix':
-        # Option 1: Create a field matrix
-        field = torch.ones((field_dim_y, field_dim_x)).to(device)
-        field[field_dim_x // 2, field_dim_y // 2] = 0
+# Method 3: Create a field from an image
+field2 = functions_gpu.create_field(3, image_path='path_to_your_image.png')
 
-    elif method == 'crate field matrix with points':
-        # Option 2: Create a field matrix with points
-        field = torch.zeros((num_points, num_points)).to(device)
-        field[num_points // 2, num_points // 2] = 1
+# Method 4: Cut a part of the picture
+field3 = functions_gpu.create_field(4, image_path='path_to_your_image.png', crop_region=(upper, lower, left, right))
 
-    elif method == 'image':
-        # Option 3: Create a field from an image
-        field = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
-        field = torch.from_numpy(field).float().to(device)
-
-    elif method == 'crop':
-        # Option 4: Cut a part of the picture
-        field = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
-        field = field[crop_region[0]:crop_region[1], crop_region[2]:crop_region[3]]
-        field = torch.from_numpy(field).float().to(device)
-
-    else:
-        raise ValueError(f"Invalid option: {method}")
-
-    return field
-
-
+field = field3
 # #################################
 # ## option: save field as image ##
 # #################################
