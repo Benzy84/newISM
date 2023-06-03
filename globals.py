@@ -26,7 +26,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 class Field:
-    def __init__(self, field):
+    def __init__(self, field, name=None):
         self.field = field.to(device)
         self.x_coordinates = torch.tensor([])
         self.y_coordinates = torch.tensor([])
@@ -38,6 +38,8 @@ class Field:
         self.padding_size = torch.tensor([])
         self.step = torch.tensor([])
         self.wavelength = torch.tensor([])
+        self.name = name
+
 
 
 class System(object):

@@ -234,3 +234,10 @@ def save_field_as_image(field):
     img.save(file_path)
 
 
+def plot_field(field):
+    fig, ax = plt.subplots()
+    im = ax.imshow(field.field.to('cpu').numpy(), extent=field.extent.to('cpu').numpy())
+    title = field.name if field.name is not None else 'Default Title'
+    ax.set_title(title)
+    plt.show(block=False)
+    plt.close(fig)

@@ -45,40 +45,52 @@ start = time.time()
 ### real space coordinates definition ###
 ###        all units in [meter]       ###
 #########################################
-v01_initial_field = Field(torch.from_numpy(field))
-z = 0
-v01_initial_field.z = torch.tensor(z).to(device)
-del field, z
-a = 1
-v01_initial_field.length_x = v00_system.length_x  # real length in x dimension
-v01_initial_field.step = v01_initial_field.length_x / (v01_initial_field.field.shape[1] - 1)
+# Prepare parameters
+# Define the parameters
+length_x = 0.2e-1  # The real length in the x dimension
+wavelength = 632.8e-9  # The wavelength of the field
+z = 0  # The z position of the field
 
-v01_initial_field.length_y = v01_initial_field.step * (
-        v01_initial_field.field.shape[0] - 1)  # real length in y dimension
+# Create the initial field
+v01_initial_field = Field(torch.from_numpy(field), name='01-Initial Field')
 
-## getting the coordinates such that 0 is in the middle
+
+# Set the attributes of the field
+v01_initial_field.z = torch.tensor(z).to(device)  # Set the z position of the field
+v01_initial_field.length_x = torch.tensor(length_x).to(device)  # Set the real length in the x dimension
+v01_initial_field.wavelength = torch.tensor(wavelength).to(device)  # Set the wavelength of the field
+v01_initial_field.step = v01_initial_field.length_x / (v01_initial_field.field.shape[1] - 1)  # Calculate and set the step size
+
+# Calculate the real length in the y dimension
+v01_initial_field.length_y = v01_initial_field.step * (v01_initial_field.field.shape[0] - 1)
+
+# Calculate the coordinates such that 0 is in the middle
 start_x = -0.5 * v01_initial_field.length_x
 end_x = 0.5 * v01_initial_field.length_x
-
 start_y = 0.5 * v01_initial_field.length_y
 end_y = -0.5 * v01_initial_field.length_y
 
+# Set the coordinates of the field
 v01_initial_field.x_coordinates = torch.linspace(start_x, end_x, v01_initial_field.field.shape[1]).to(device)
 v01_initial_field.y_coordinates = torch.linspace(start_y, end_y, v01_initial_field.field.shape[0]).to(device)
+
+# Create a meshgrid of the coordinates
 v01_initial_field.mesh = torch.meshgrid(v01_initial_field.y_coordinates, v01_initial_field.x_coordinates)
+
+# Set the extent of the field
 v01_initial_field.extent = torch.tensor([start_x, end_x, end_y, start_y]).to(device)
+
+# Set the padding size of the field
 v01_initial_field.padding_size = torch.tensor(0).to(device)
 
-del start_x, start_y, end_x, end_y
+# Delete unnecessary variables
+del length_x, wavelength, z, start_x, end_x, start_y, end_y
+
 
 ##################
 ## show field ##
 ##################
-fig0, ax0 = plt.subplots()
-im0 = ax0.imshow(v01_initial_field.field.to('cpu').numpy(), extent=v01_initial_field.extent.to('cpu').numpy())
-ax0.set_title('initial field')
-plt.show(block=False)
-del fig0, ax0, im0
+plot_field(v01_initial_field)
 
 ####################################
 ### padding the field with zeros ###
