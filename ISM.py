@@ -90,7 +90,7 @@ del length_x, wavelength, z, start_x, end_x, start_y, end_y
 ##################
 ## show field ##
 ##################
-plot_field(v01_initial_field)
+functions_gpu.plot_field(v01_initial_field)
 
 ####################################
 ### padding the field with zeros ###
