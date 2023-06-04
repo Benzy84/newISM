@@ -95,34 +95,47 @@ functions_gpu.plot_field(v01_initial_field)
 ####################################
 ### padding the field with zeros ###
 ####################################
+# Define the size of the padding to be added to the field.
 small_padding_size = 50
 small_padding_size = torch.tensor(small_padding_size).to(device)
+
+# Pad the initial field with zeros on all sides.
+# This is done to prepare the field for further processing steps.
 v02_small_padded_field = functions_gpu.pad(v01_initial_field, small_padding_size)
+v02_small_padded_field.name = 'v02-small padded field'
+
+# Create a copy of the padded field.
+# We will apply a Gaussian filter to this copy in the next step.
 v03_filtered_small_padded_field = copy.deepcopy(v02_small_padded_field)
+v03_filtered_small_padded_field.name = 'v03-filtered small padded field'
+
+# Convert the field data to a numpy array and apply a Gaussian filter.
+# The Gaussian filter smooths the field, reducing high-frequency noise.
 v03_field = v03_filtered_small_padded_field.field.to('cpu').numpy()
 v03_field = gaussian_filter(v03_field, sigma=np.sqrt(0))
+
+# Convert the filtered field back to a tensor and store it in the field object.
 v03_filtered_small_padded_field.field = torch.from_numpy(v03_field).to(device)
 
 # show padded field
 functions_gpu.plot_field(v03_filtered_small_padded_field)
+del v03_field, small_padding_size
 
-fig1, ax1 = plt.subplots()
-im1 = ax1.imshow(v03_filtered_small_padded_field.field.to('cpu').numpy(),
-                 extent=v03_filtered_small_padded_field.extent.to('cpu').numpy())
-ax1.set_title('filtered_small_padded_field')
-del fig1, ax1, im1, small_padding_size, v03_field
 
+# Define the size of the additional padding to be added to the field.
+# We choose a larger padding size for this step.
 padding_size = 250
 padding_size = torch.tensor(padding_size).to(device)
+
+# Pad the filtered field with additional zeros on all sides.
+# This is done to prepare the field for further processing steps.
 v04_padded_object = functions_gpu.pad(v03_filtered_small_padded_field, padding_size)
 
+v04_padded_object.name = 'v04-padded object'
+
 # show padded field
-fig1, ax1 = plt.subplots()
-im1 = ax1.imshow(v04_padded_object.field.to('cpu').numpy(), extent=v04_padded_object.extent.to('cpu').numpy())
-ax1.set_title('padded_filtered_field')
-plt.show(block=False)
-fig1.colorbar(im1)
-del fig1, ax1, im1, padding_size
+functions_gpu.plot_field(v04_padded_object)
+
 
 ##############################
 ##############################

@@ -104,28 +104,52 @@ def getimage():
 
 
 def pad(field_in, padding_size):
+    """
+    This function pads a given field with zeros.
+
+    Parameters:
+    - field_in: The input field to be padded.
+    - padding_size: The size of the padding to be added.
+
+    Returns:
+    - padded_field: The padded field.
+    """
+    # Create a copy of the input field
     padded_field = copy.deepcopy(field_in)
+
+    # Define the padding vector
     pading_vec = (padding_size, padding_size, padding_size, padding_size)
+
+    # Pad the field with zeros
     padded_field.field = torch.nn.functional.pad(field_in.field, pading_vec).to(device)
+
+    # Calculate the step size
     step = field_in.step
 
+    # Calculate the start and end coordinates in x and y dimensions
     start_x = torch.min(field_in.x_coordinates) - padding_size * step
     end_x = torch.max(field_in.x_coordinates) + padding_size * step
-
     start_y = torch.max(field_in.y_coordinates) + padding_size * step
     end_y = torch.min(field_in.y_coordinates) - padding_size * step
 
+    # Calculate the dimensions of the padded field
     padded_dim_y, padded_dim_x = torch.tensor(padded_field.field.shape).to(device)
 
+    # Set the x and y coordinates of the padded field
     padded_field.x_coordinates = torch.linspace(start_x, end_x, padded_dim_x).to(device)
     padded_field.y_coordinates = torch.linspace(start_y, end_y, padded_dim_y).to(device)
+
+    # Create a meshgrid of the coordinates
     padded_field.mesh = torch.meshgrid(padded_field.y_coordinates, padded_field.x_coordinates)
 
+    # Calculate the length in x and y dimensions
     padded_field.length_x = padded_field.x_coordinates.max() - padded_field.x_coordinates.min()
     padded_field.length_y = padded_field.y_coordinates.max() - padded_field.y_coordinates.min()
 
+    # Set the extent of the field
     padded_field.extent = torch.tensor([start_x, end_x, end_y, start_y]).to(device)
 
+    # Set the padding size of the field
     padded_field.padding_size = padding_size
 
     return padded_field
