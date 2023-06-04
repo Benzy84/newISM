@@ -52,7 +52,7 @@ wavelength = 632.8e-9  # The wavelength of the field
 z = 0  # The z position of the field
 
 # Create the initial field
-v01_initial_field = Field(torch.from_numpy(field), name='01-Initial Field')
+v01_initial_field = Field(field, name='01-Initial Field')
 
 
 # Set the attributes of the field
@@ -104,6 +104,8 @@ v03_field = gaussian_filter(v03_field, sigma=np.sqrt(0))
 v03_filtered_small_padded_field.field = torch.from_numpy(v03_field).to(device)
 
 # show padded field
+functions_gpu.plot_field(v03_filtered_small_padded_field)
+
 fig1, ax1 = plt.subplots()
 im1 = ax1.imshow(v03_filtered_small_padded_field.field.to('cpu').numpy(),
                  extent=v03_filtered_small_padded_field.extent.to('cpu').numpy())
