@@ -4,6 +4,7 @@ from optical_elements import *
 import functions_gpu
 import propagators_gpu as prop
 
+matplotlib.use('TkAgg')
 
 # Define the Lens object
 lens = Lens(focal_length=10, lens_radius=5)
@@ -22,22 +23,28 @@ iris = Iris(radius=3)
 ###############################
 ###############################
 
-# Method 1: Create a field matrix
-field1 = functions_gpu.create_field(1, field_dim_x=512, field_dim_y=512)
 
-# Method 2: Create a field matrix with points
-field2 = functions_gpu.create_field(2, field_dim_x=83, field_dim_y=44, num_x_points=1, num_y_points=1)
+# Method 1: Create a field matrix with points
+field_dim_x=100
+field_dim_y=200
+points_value=0
+bg_value=1
+num_x_points=2
+num_y_points=3
+field1 = functions_gpu.create_field(1, field_dim_x=field_dim_x, field_dim_y=field_dim_y, points_value=points_value, bg_value=bg_value, num_x_points=num_x_points, num_y_points=num_y_points)
+del field_dim_x, field_dim_y, points_value, bg_value, num_x_points, num_y_points
+#
+# # Method 2: Create a field from an image
+# field2 = functions_gpu.create_field(2)
+#
+# # Method 3: Cut a part of the picture
+# field3 = functions_gpu.create_field(3)
 
-# Method 3: Create a field from an image
-field3 = functions_gpu.create_field(3)
 
-# Method 4: Cut a part of the picture
-field4 = functions_gpu.create_field(4)
-
-field = field3
+field = field1
 
 # Save teh field as png image
-functions_gpu.save_field_as_image(field)
+# functions_gpu.save_field_as_image(field)
 
 start = time.time()
 
@@ -53,6 +60,7 @@ z = 0  # The z position of the field
 
 # Create the initial field
 v01_initial_field = Field(field, name='01-Initial Field')
+del field
 
 
 # Set the attributes of the field

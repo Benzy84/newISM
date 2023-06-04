@@ -1,3 +1,5 @@
+import torch
+
 from globals import *
 
 
@@ -165,73 +167,59 @@ def is_picklable(obj):
 
 def create_field(method_number, **kwargs):
     """
-    Create a field matrix based on the specified option.
+    This function creates a field matrix based on the method number provided.
 
     Parameters:
-    - method_number: The option to use for creating the field matrix. Options are:
-        1: Create a field matrix
-        2: Create a field matrix with points
-        3: Create a field from an image
-        4: Cut a part of the picture
-    - **kwargs: Additional arguments depending on the method:
-        - field_dim_x, field_dim_y: The dimensions of the field matrix for the 'matrix' and 'points' options. Default is 512 for both.
-        - num_x_points, num_y_points: The number of points in the x and y dimensions for the 'points' option. Default is 1 for both.
-        - image_path: The path to the image file for the 'image' and 'crop' options.
-        - crop_region: A tuple specifying the region to crop from the image for the 'crop' option.
+    method_number (int): The method number to use for creating the field matrix.
+    **kwargs: Additional parameters required for each method.
 
     Returns:
-    - field: The created field matrix.
+    field (torch.Tensor): The created field matrix.
     """
-
-    # Get the parameters from kwargs, or use default values
-    field_dim_x = kwargs.get('field_dim_x', 512)
-    field_dim_y = kwargs.get('field_dim_y', 512)
-    num_x_points = kwargs.get('num_x_points', 1)
-    num_y_points = kwargs.get('num_y_points', 1)
-    image_path = kwargs.get('image_path', None)
-    crop_region = kwargs.get('crop_region', None)
-
+    # Method 1: Create a field matrix with points
     if method_number == 1:
-        # Option 1: Create a field matrix
-        field = torch.ones((field_dim_y, field_dim_x)).to(device)
-        field[field_dim_x // 2, field_dim_y // 2] = 0
+        # Get the dimensions of the field from the kwargs, defaulting to 512 if not provided
+        field_dim_x = kwargs.get('field_dim_x', 512)
+        field_dim_y = kwargs.get('field_dim_y', 512)
 
-    elif method_number == 2:
-        # Option 2: Create a field matrix with points
-        field = torch.zeros((field_dim_y, field_dim_x)).to(device)
-        num_of_x_intervals = num_x_points + 1
-        num_of_pix_in_x_interval = torch.tensor((field_dim_x - num_x_points) / num_of_x_intervals).to(device)
+        # Get the value for the points and the background from the kwargs, defaulting to 1 and 0 respectively if not provided
+        points_value = kwargs.get('points_value', 1)
+        bg_value = kwargs.get('bg_value', 0)
+
+        # Get the number of points in x and y directions from the kwargs, defaulting to 1 if not provided
+        num_x_points = kwargs.get('num_x_points', 1)
+        num_y_points = kwargs.get('num_y_points', 1)
+
+        # Create a field filled with the background value
+        field = torch.full((field_dim_y, field_dim_x), bg_value, device=device)
+
+        # Calculate the number of pixels in x and y intervals
+
+        num_of_pix_in_x_interval = torch.tensor(field_dim_x / (num_x_points + 1))
         num_of_pix_in_x_interval = torch.ceil(num_of_pix_in_x_interval)
-        num_of_y_intervals = num_y_points + 1
-        num_of_pix_in_y_interval = torch.tensor((field_dim_y - num_y_points) / num_of_y_intervals).to(device)
+        num_of_pix_in_y_interval = torch.tensor(field_dim_y / (num_y_points + 1))
         num_of_pix_in_y_interval = torch.ceil(num_of_pix_in_y_interval)
-        column = 0
-        for x_point in range(num_x_points):
-            column += num_of_pix_in_x_interval
-            row = 0
-            for y_point in range(num_y_points):
-                row += num_of_pix_in_y_interval
-                field[int(row), int(column)] = 1
-                row += 1
-            column += 1
 
-    elif method_number == 3:
-        #Option 3: Create a field from an image
+        # Fill the field with points
+        for x_point in range(num_x_points):
+            for y_point in range(num_y_points):
+                field[int((y_point + 1) * num_of_pix_in_y_interval), int((x_point + 1) * num_of_pix_in_x_interval)] = points_value
+
+    # Method 2: Create a field from an image
+    elif method_number == 2:
         field, _ = getimage()
         field = torch.from_numpy(field)
 
-
-
-    elif method_number == 4:
-        # Option 4: Cut a part of the picture
+    # Method 3: Cut a part of the picture
+    elif method_number == 3:
+        # Option 3: Cut a part of the picture
         image, file_path = getimage()
         left, upper, right, lower = get_points_to_crop(file_path)
         field = image[upper:lower, left:right]
         field = torch.from_numpy(field)
 
-
     else:
-        raise ValueError(f"Invalid option: {method_number}")
+       raise ValueError("Invalid method number. Please choose between 1, 2, and 3.")
 
     return field
 
@@ -263,4 +251,4 @@ def plot_field(field):
     im = ax.imshow(field.field.to('cpu').numpy(), extent=field.extent.to('cpu').numpy())
     title = field.name if field.name is not None else 'Default Title'
     ax.set_title(title)
-    plt.show()
+    plt.show(block=False)
