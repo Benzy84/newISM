@@ -2,6 +2,7 @@
 
 from optical_elements import *
 import functions_gpu
+import gc
 import propagators_gpu as prop
 
 matplotlib.use('TkAgg')
@@ -30,7 +31,7 @@ del field_dim_x, field_dim_y, points_value, bg_value, num_x_points, num_y_points
 # field3 = functions_gpu.create_field(3)
 
 
-field = field1
+field = field1; del field1
 
 # Save teh field as png image
 # functions_gpu.save_field_as_image(field)
@@ -57,7 +58,6 @@ v01_initial_field.z = torch.tensor(z).to(device)  # Set the z position of the fi
 v01_initial_field.length_x = torch.tensor(length_x).to(device)  # Set the real length in the x dimension
 v01_initial_field.wavelength = torch.tensor(wavelength).to(device)  # Set the wavelength of the field
 v01_initial_field.step = v01_initial_field.length_x / (v01_initial_field.field.shape[1] - 1)  # Calculate and set the step size
-
 # Calculate the real length in the y dimension
 v01_initial_field.length_y = v01_initial_field.step * (v01_initial_field.field.shape[0] - 1)
 
@@ -132,6 +132,7 @@ v04_padded_object.name = 'v04_padded_object'
 
 # show padded field
 functions_gpu.plot_field(v04_padded_object)
+del padding_size
 
 
 ##############################
@@ -156,24 +157,30 @@ free_space2 = FreeSpace(length=2*focal_length, name='free_space2')
 
 # Define the Iris object
 iris = Iris(radius=0.015, name='iris')
+del focal_length, lens_radius,
 
 # Create an optical system with these elements
-optical_system = OpticalSystem([free_space1, lens, free_space2])
+wide_field_optical_system = OpticalSystem([free_space1, lens, free_space2])
 
 # Propagate a field through the system
-field_states_wide_field_imaging = optical_system.propagate(v04_padded_object, imaging_method='wide_field_imaging')
+field_states_wide_field_imaging = wide_field_optical_system.propagate(v04_padded_object, imaging_method='wide_field_imaging')
 
-element_names = [lens, iris]  # The elements after which you want to plot the fields
+# Define a list of optical elements after which you want to plot the field.
+elements_to_plot_after = [lens, iris]
 
-# Get the names of the fields as a list
-field_names = list(field_states_wide_field_imaging.keys())
+# Get the names of all the fields that have been propagated through the optical system.
+all_field_names = list(field_states_wide_field_imaging.keys())
 
-# Iterate over the field states
-for i, (field_name, field) in enumerate(field_states_wide_field_imaging.items()):
-    # Check if the field name contains the name of any of the elements, or if this is the last field
-    if any(element.name in field_name for element in element_names) or i == len(field_names) - 1:
-        # Plot the field
-        functions_gpu.plot_field(field)
+# Iterate over the field states. The 'enumerate' function provides a counter 'i' along with the field name and field object.
+for i, (current_field_name, current_field) in enumerate(field_states_wide_field_imaging.items()):
+    # Check if the current field name contains the name of any of the elements in 'elements_to_plot_after'.
+    # This means we're at a point in the propagation where we've just passed through one of these elements.
+    # Also check if this is the last field in the list, which we want to plot regardless of which element it's after.
+    if any(element.name in current_field_name for element in elements_to_plot_after) or i == len(all_field_names) - 1:
+        # If either of the above conditions is true, plot the current field.
+        functions_gpu.plot_field(current_field)
+del i, current_field_name, current_field, all_field_names, elements_to_plot_after
+del free_space1, free_space2, lens, iris
 
 
 
