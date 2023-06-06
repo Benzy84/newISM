@@ -246,9 +246,17 @@ def save_field_as_image(field):
     img.save(file_path)
 
 
-def plot_field(field):
+def plot_field(field, title=None):
+    """
+    This function plots a given field.
+
+    Parameters:
+    - field: The field to be plotted.
+    - title (optional): The title of the plot. If not provided, the name of the field will be used.
+    """
     fig, ax = plt.subplots()
     im = ax.imshow(np.abs(field.field.to('cpu').numpy()), extent=field.extent.to('cpu').numpy())
-    title = field.name if field.name is not None else 'Default Title'
+    # If a title is provided, use it. Otherwise, use the name of the field.
+    title = title if title is not None else field.name
     ax.set_title(title)
     plt.show(block=False)

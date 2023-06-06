@@ -4,7 +4,6 @@ from optical_elements import *
 import functions_gpu
 import gc
 import propagators_gpu as prop
-
 matplotlib.use('TkAgg')
 
 ###############################
@@ -160,10 +159,10 @@ iris = Iris(radius=0.015, name='iris')
 del focal_length, lens_radius,
 
 # Create an optical system with these elements
-wide_field_optical_system = OpticalSystem([free_space1, lens, free_space2])
+optical_system = OpticalSystem([free_space1, lens, free_space2])
 
 # Propagate a field through the system
-field_states_wide_field_imaging = wide_field_optical_system.propagate(v04_padded_object, imaging_method='wide_field_imaging')
+field_states_wide_field_imaging = optical_system.propagate(v04_padded_object, imaging_method='wide_field_imaging', plot_fields=True)
 
 # Define a list of optical elements after which you want to plot the field.
 elements_to_plot_after = [lens, iris]
@@ -176,127 +175,86 @@ for i, (current_field_name, current_field) in enumerate(field_states_wide_field_
     # Check if the current field name contains the name of any of the elements in 'elements_to_plot_after'.
     # This means we're at a point in the propagation where we've just passed through one of these elements.
     # Also check if this is the last field in the list, which we want to plot regardless of which element it's after.
-    if any(element.name in current_field_name for element in elements_to_plot_after) or i == len(all_field_names) - 1:
+    if any(element.name in current_field_name for element in elements_to_plot_after):
         # If either of the above conditions is true, plot the current field.
         functions_gpu.plot_field(current_field)
 del i, current_field_name, current_field, all_field_names, elements_to_plot_after
 del free_space1, free_space2, lens, iris
 
-
-
-
-# ########################
-# ##   test   ###
-# ########################
-# start_time = time.time()
-# tests.test(v01_initial_field, v00_system, small_padding_size + padding_size, v04_padded_object)
-# end_time = time.time()
-# elapsed_time = end_time - start_time
-# print(f'Elapsed time: {elapsed_time} seconds')
-# del padding_size, small_padding_size
-
-"""
-x_coordinates = padded_coordinates[0]
-y_coordinates = padded_coordinates[1]
-extent = padded_extent
-"""
-
-##############################
-###   wide field imaging   ###
-##############################
-# propagation u
-field_in = copy.deepcopy(v04_padded_object)
-z_out = v00_system.u
-v05_field_before_lens = prop.distance_z(field_in, z_out, v00_system.wave_length, plot=0)
-
-"""
-v05_field_before_first_lens = prop.distance_z(field_in, z_out, v00_system.wave_length, plot=1)
-"""
-del field_in, z_out
-
-# ###########################################
-# ###   wide field imaging - with steps   ###
-# ###########################################
-# num_of_steps = 10
-# for iteration in np.arange(num_of_steps):
-#     rel_dist = (iteration + 1) / num_of_steps * z_out
-#     v05_field_before_lens = prop.distance_z(field_in, rel_dist, v00_system.wave_length, plot=1)
-#     field_in = copy.deepcopy(v05_field_before_lens)
 #
+#
+# ########################################################################################################################
+# ########################################################################################################################
+# ########################################################################################################################
+# ########################################################################################################################
+# ########################################################################################################################
+# ########################################################################################################################
+# v20_object_fft = torch.fft.fftshift(torch.fft.fft2(abs(v04_padded_object.field)))
+# v21_regular_imaging_fft = torch.fft.fftshift(torch.fft.fft2(abs(v07_image_wide_field_imaging.field)))
+#
+# fig00, axs00 = plt.subplots(2, 2)
+# ax = axs00[0, 0]
+# ax.set_title('object fft')
+# im2 = ax.imshow(np.abs(v20_object_fft.to('cpu').numpy()))
+# fig00.colorbar(im2)
+# del ax, im2
+#
+# ax = axs00[0, 1]
+# ax.set_title('regular_imaging_fft')
+# im2 = ax.imshow(np.abs(v21_regular_imaging_fft.to('cpu').numpy()))
+# fig00.colorbar(im2)
+# del ax, im2
+#
+# plt.show(block=False)
+#
+#
+#
+#
+#
+#
+#
+# ############################
+# ###   confocal imaging   ###
+# ############################
+# v08_temp_field = copy.deepcopy(v04_padded_object)
+# v08_temp_field.field = 0 * v08_temp_field.field
+# v08_temp_field.z = v00_system.u + v00_system.v
+#
+# v16_final_confocal_field = copy.deepcopy(v04_padded_object)
+# v16_final_confocal_field.field = 0 * v16_final_confocal_field.field * 1j
+#
+# points_around_for_ism = 100
+# ism_dim = (1 * points_around_for_ism + 1, 1 * points_around_for_ism + 1)
+#
+# v17_ism_pic_by_resize1 = copy.deepcopy(v04_padded_object)
+# v17_ism_pic_by_resize2 = copy.deepcopy(v04_padded_object)
+# v17_ism_pic_by_resize1.field = 0 * v17_ism_pic_by_resize1.field * 1j
+# v17_ism_pic_by_resize2.field = 0 * v17_ism_pic_by_resize2.field * 1j
+# v18_ism_pic_by_down_sampling = copy.deepcopy(v04_padded_object)
+# v18_ism_pic_by_down_sampling.field = 0 * v18_ism_pic_by_down_sampling.field * 1j
+# v19_wide_field_by_sum = copy.deepcopy(v07_image_wide_field_imaging)
+# v19_wide_field_by_sum.field = 0 * v19_wide_field_by_sum.field
+# ########################################################################################################################
+# ########################################################################################################################
+# ########################################################################################################################
+# ########################################################################################################################
+# ########################################################################################################################
+# ########################################################################################################################
+# Get the last field from field_states_wide_field_imaging
+last_field_name = list(field_states_wide_field_imaging.keys())[-1]
+last_field_wide_field_imaging = field_states_wide_field_imaging[last_field_name]
 
-# Lens
-field_in = copy.deepcopy(v05_field_before_lens)
-v06_field_after_lens = prop.thin_lens(field_in, v00_system.wave_length, v00_system.lens_radius,
-                                            v00_system.lens_center_pos, v00_system.f, plot=0)
+# Propagate the last field through the optical system in reverse
+field_states_confocal_imaging = optical_system.propagate_reverse(last_field_wide_field_imaging, imaging_method='confocal_imaging')
 
-"""
-v06_field_after_first_lens = prop.thin_lens(field_in, v00_system.wave_length, v00_system.lens_radius, v00_system.lens_center_pos, v00_system.f, plot=1)
-"""
-del field_in
-
-# propagation v to imaging plane
-field_in = copy.deepcopy(v06_field_after_lens)
-z_out = field_in.z + v00_system.v
-v07_image_wide_field_imaging = prop.distance_z(field_in, z_out, v00_system.wave_length, plot=1)
-"""
-v07_image_wide_field_imaging = prop.distance_z(field_in, z_out, v00_system.wave_length, plot=1)
-"""
-del field_in, z_out
-
-
-fig0, ax0 = plt.subplots()
-im0 = ax0.imshow(np.abs(v07_image_wide_field_imaging.field.to('cpu').numpy()),
-                 extent=v07_image_wide_field_imaging.extent.to('cpu').numpy())
-ax0.set_title('wide field imaging')
-plt.show(block=False)
-fig0.colorbar(im0)
-del fig0, ax0, im0
-
-v20_object_fft = torch.fft.fftshift(torch.fft.fft2(abs(v04_padded_object.field)))
-v21_regular_imaging_fft = torch.fft.fftshift(torch.fft.fft2(abs(v07_image_wide_field_imaging.field)))
-
-fig00, axs00 = plt.subplots(2, 2)
-
-ax = axs00[0, 0]
-ax.set_title('object fft')
-im2 = ax.imshow(np.abs(v20_object_fft.to('cpu').numpy()))
-fig00.colorbar(im2)
-del ax, im2
-
-ax = axs00[0, 1]
-ax.set_title('regular_imaging_fft')
-im2 = ax.imshow(np.abs(v21_regular_imaging_fft.to('cpu').numpy()))
-fig00.colorbar(im2)
-del ax, im2
-
-plt.show(block=False)
-
-############################
-###   confocal imaging   ###
-############################
-v08_temp_field = copy.deepcopy(v04_padded_object)
-v08_temp_field.field = 0 * v08_temp_field.field
-v08_temp_field.z = v00_system.u + v00_system.v
-
-v16_final_confocal_field = copy.deepcopy(v04_padded_object)
-v16_final_confocal_field.field = 0 * v16_final_confocal_field.field * 1j
-
-points_around_for_ism = 100
-ism_dim = (1 * points_around_for_ism + 1, 1 * points_around_for_ism + 1)
-
-v17_ism_pic_by_resize1 = copy.deepcopy(v04_padded_object)
-v17_ism_pic_by_resize2 = copy.deepcopy(v04_padded_object)
-v17_ism_pic_by_resize1.field = 0 * v17_ism_pic_by_resize1.field * 1j
-v17_ism_pic_by_resize2.field = 0 * v17_ism_pic_by_resize2.field * 1j
-v18_ism_pic_by_down_sampling = copy.deepcopy(v04_padded_object)
-v18_ism_pic_by_down_sampling.field = 0 * v18_ism_pic_by_down_sampling.field * 1j
-v19_wide_field_by_sum = copy.deepcopy(v07_image_wide_field_imaging)
-v19_wide_field_by_sum.field = 0 * v19_wide_field_by_sum.field
+field_states_reverse = optical_system.propagate_reverse(v04_padded_object, imaging_method='confocal_imaging')
 
 # row = column = 0
 counter = 0
 for row in tqdm(np.arange(v02_small_padded_field.field.shape[0])):
     for column in (np.arange(v02_small_padded_field.field.shape[1])):
+        field_states_confocal = optical_system.propagate(field_in_confocal, imaging_method='confocal')
+
         [x, y] = [column + v08_temp_field.padding_size, row + v08_temp_field.padding_size]
         counter = counter + 1
 
