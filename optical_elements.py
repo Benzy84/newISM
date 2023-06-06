@@ -143,7 +143,7 @@ class OpticalSystem:
         """
         self.elements = elements
 
-    def propagate(self, field_in):
+    def propagate(self, field_in, imaging_method=None):
         """
         Propagate a field through the optical system.
 
@@ -151,6 +151,8 @@ class OpticalSystem:
         ----------
         field_in : Field
             The initial field to propagate through the system.
+        imaging_method : str, optional
+            The imaging method being used. This is used to name the final field.
 
         Returns
         -------
@@ -161,7 +163,7 @@ class OpticalSystem:
         # Start with the initial field
         field_states = {field_in.name: field_in}
 
-        for element in self.elements:
+        for i, element in enumerate(self.elements):
             # Propagate the field through the current element
             field_out = element.propagate(field_in)
 
@@ -171,10 +173,19 @@ class OpticalSystem:
             except ValueError:
                 raise ValueError(f"Field name '{field_in.name}' doesn't follow the expected format 'vXX...'")
             var_no_of_field_out = var_no_of_field_in + 1
-            if var_no_of_field_in > 9:
-                name = 'v' + str(var_no_of_field_out) + '_field_after_' + element.name
+
+            # If this is the last element in the system and an imaging method is provided,
+            # name the output field accordingly
+            if i == len(self.elements) - 1 and imaging_method is not None:
+                if var_no_of_field_in > 9:
+                    name = 'v' + str(var_no_of_field_out) + '_' + imaging_method
+                else:
+                    name = 'v0' + str(var_no_of_field_out) + '_' + imaging_method
             else:
-                name = 'v0' + str(var_no_of_field_out) + '_field_after_' + element.name
+                if var_no_of_field_in > 9:
+                    name = 'v' + str(var_no_of_field_out) + '_field_after_' + element.name
+                else:
+                    name = 'v0' + str(var_no_of_field_out) + '_field_after_' + element.name
 
             # Set the name of the output field
             field_out.name = name

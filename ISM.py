@@ -155,21 +155,28 @@ lens = Lens(focal_length, lens_radius, name='lens')
 free_space2 = FreeSpace(length=2*focal_length, name='free_space2')
 
 # Define the Iris object
-iris = Iris(radius=5, name='iris')
+iris = Iris(radius=0.015, name='iris')
 
 # Create an optical system with these elements
 optical_system = OpticalSystem([free_space1, lens, free_space2])
 
 # Propagate a field through the system
-output_fields = optical_system.propagate(v04_padded_object)
-field_states = optical_system.propagate(v04_padded_object)
+field_states_wide_field_imaging = optical_system.propagate(v04_padded_object, imaging_method='wide_field_imaging')
+
+element_names = [lens, iris]  # The elements after which you want to plot the fields
+
+# Get the names of the fields as a list
+field_names = list(field_states_wide_field_imaging.keys())
 
 # Iterate over the field states
-for field_name, field in field_states.items():
-    # Create a variable with the same name as the field name
-    exec(f"{field_name} = field")
+for i, (field_name, field) in enumerate(field_states_wide_field_imaging.items()):
+    # Check if the field name contains the name of any of the elements, or if this is the last field
+    if any(element.name in field_name for element in element_names) or i == len(field_names) - 1:
+        # Plot the field
+        functions_gpu.plot_field(field)
 
-functions_gpu.plot_field(output_field)
+
+
 
 # ########################
 # ##   test   ###
