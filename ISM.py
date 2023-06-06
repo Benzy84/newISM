@@ -6,17 +6,6 @@ import propagators_gpu as prop
 
 matplotlib.use('TkAgg')
 
-# Define the Lens object
-lens = Lens(focal_length=10, lens_radius=5)
-
-# Define the FreeSpace object
-free_space = FreeSpace(length=20)
-
-# Define the Iris object
-iris = Iris(radius=3)
-
-
-
 ###############################
 ###############################
 ### setting up field matrix ###
@@ -54,7 +43,7 @@ start = time.time()
 #########################################
 # Prepare parameters
 # Define the parameters
-length_x = 0.2e-1  # The real length in the x dimension
+length_x = 0.2  # The real length in the x dimension
 wavelength = 632.8e-9  # The wavelength of the field
 z = 0  # The z position of the field
 
@@ -139,7 +128,7 @@ padding_size = torch.tensor(padding_size).to(device)
 # This is done to prepare the field for further processing steps.
 v04_padded_object = functions_gpu.pad(v03_filtered_small_padded_field, padding_size)
 
-v04_padded_object.name = 'v04-padded object'
+v04_padded_object.name = 'v04_padded_object'
 
 # show padded field
 functions_gpu.plot_field(v04_padded_object)
@@ -151,6 +140,36 @@ functions_gpu.plot_field(v04_padded_object)
 ##############################
 ##############################
 
+
+# Create some optical elements
+focal_length=30e-2
+lens_radius=5
+
+# Define the first FreeSpace object
+free_space1 = FreeSpace(length=2*focal_length, name='free_space1')
+
+# Define the Lens object
+lens = Lens(focal_length, lens_radius, name='lens')
+
+# Define the first FreeSpace object
+free_space2 = FreeSpace(length=2*focal_length, name='free_space2')
+
+# Define the Iris object
+iris = Iris(radius=5, name='iris')
+
+# Create an optical system with these elements
+optical_system = OpticalSystem([free_space1, lens, free_space2])
+
+# Propagate a field through the system
+output_fields = optical_system.propagate(v04_padded_object)
+field_states = optical_system.propagate(v04_padded_object)
+
+# Iterate over the field states
+for field_name, field in field_states.items():
+    # Create a variable with the same name as the field name
+    exec(f"{field_name} = field")
+
+functions_gpu.plot_field(output_field)
 
 # ########################
 # ##   test   ###

@@ -10,14 +10,17 @@ class OpticalElement:
         raise NotImplementedError  # Raise an error if this method is called
 
 
+
 # Define the Lens class, which is a type of OpticalElement
 class Lens(OpticalElement):
     # The constructor takes the focal length, lens radius, and lens center as arguments
     # The default lens center is at (0, 0)
-    def __init__(self, focal_length, lens_radius, lens_center=(0, 0)):
+    def __init__(self, focal_length, lens_radius, name, lens_center=(0, 0)):
         self.focal_length = focal_length  # Store the focal length
         self.lens_radius = lens_radius  # Store the lens radius
         self.lens_center = lens_center  # Store the lens center
+        self.name = name
+
 
     # The propagate method applies the lens phase to the field
     def propagate(self, field_in):
@@ -47,9 +50,11 @@ class Lens(OpticalElement):
 class Iris(OpticalElement):
     # The constructor takes the radius and center position of the iris as arguments
     # The default iris center is at (0, 0)
-    def __init__(self, radius, iris_center=(0, 0)):
+    def __init__(self, radius, name, iris_center=(0, 0)):
         self.radius = radius  # Store the radius
         self.iris_center = iris_center  # Store the center position
+        self.name = name
+
 
     # The propagate method applies the iris aperture to the field
     def propagate(self, field_in):
@@ -72,8 +77,10 @@ class Iris(OpticalElement):
 # Define the FreeSpace class, which is a type of OpticalElement
 class FreeSpace(OpticalElement):
     # The constructor takes the length of the free space as an argument
-    def __init__(self, length):
+    def __init__(self, length, name):
         self.length = length  # Store the length of the free space
+        self.name = name
+
 
     # The propagate method propagates the field through the free space
     def propagate(self, field_in):
@@ -125,16 +132,57 @@ class FreeSpace(OpticalElement):
 
 # Define the OpticalSystem class, which contains a list of OpticalElements
 class OpticalSystem:
-    # The constructor takes a list of elements as an argument
     def __init__(self, elements):
-        # Sort the elements by their position
-        self.elements = sorted(elements, key=lambda x: x.position)
+        """
+        Initialize an optical system with a list of optical elements.
 
-    # The propagate method propagates a field through all the elements in the system
+        Parameters
+        ----------
+        elements : list
+            A list of optical elements that make up the system.
+        """
+        self.elements = elements
+
     def propagate(self, field_in):
-        # Propagate the field through each element in turn
+        """
+        Propagate a field through the optical system.
+
+        Parameters
+        ----------
+        field_in : Field
+            The initial field to propagate through the system.
+
+        Returns
+        -------
+        dict
+            A dictionary where the keys are the names of the fields at each step of the propagation,
+            and the values are the corresponding Field objects.
+        """
+        # Start with the initial field
+        field_states = {field_in.name: field_in}
+
         for element in self.elements:
+            # Propagate the field through the current element
             field_out = element.propagate(field_in)
+
+            # Generate the name for the output field
+            try:
+                var_no_of_field_in = int(field_in.name[1:3])
+            except ValueError:
+                raise ValueError(f"Field name '{field_in.name}' doesn't follow the expected format 'vXX...'")
+            var_no_of_field_out = var_no_of_field_in + 1
+            if var_no_of_field_in > 9:
+                name = 'v' + str(var_no_of_field_out) + '_field_after_' + element.name
+            else:
+                name = 'v0' + str(var_no_of_field_out) + '_field_after_' + element.name
+
+            # Set the name of the output field
+            field_out.name = name
+
+            # Save the field state after the current element
+            field_states[name] = field_out
+
+            # The output field becomes the input field for the next element
             field_in = field_out
-        # Return the propagated field
-        return field_out
+
+        return field_states
