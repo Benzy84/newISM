@@ -24,7 +24,7 @@ class Lens(OpticalElement):
 
 
     # The propagate method applies the lens phase to the field
-    def propagate(self, field_in):
+    def propagate(self, field_in, reverse=False):
         # Calculate the wave number
         k0 = 2 * torch.pi / field_in.wavelength
         # Create a meshgrid of the field's coordinates
@@ -58,7 +58,7 @@ class Iris(OpticalElement):
 
 
     # The propagate method applies the iris aperture to the field
-    def propagate(self, field_in):
+    def propagate(self, field_in, reverse=False):
         # Create a meshgrid of the field's coordinates
         xx, yy = torch.meshgrid(field_in.y_coordinates, field_in.x_coordinates)
 
@@ -144,7 +144,7 @@ class OpticalSystem:
         """
         self.elements = elements
 
-    def propagate(self, field_in, imaging_method=None, plot_fields=False):
+    def propagate(self, field_in, imaging_method=None, plot_fields=False, reverse=False):
         """
         Propagate a field through the optical system.
 
@@ -155,7 +155,9 @@ class OpticalSystem:
         imaging_method : str, optional
             The imaging method being used. This is used to name the final field.
         plot_fields : bool, optional
-            Whether to plot the initial and final fields. Default is True.
+            Whether to plot the initial and final fields. Default is False.
+        reverse : bool, optional
+            Whether to propagate the field in reverse order through the elements. Default is False.
 
         Returns
         -------
@@ -164,16 +166,20 @@ class OpticalSystem:
             and the values are the corresponding Field objects.
         """
         # Start with the initial field
-        field_states = {field_in.name: field_in}
+        field_states = {}
+        # field_states = {field_in.name: field_in}
 
         # Plot the initial field, if requested
         if plot_fields:
             title = 'field in - ' + field_in.name
             functions_gpu.plot_field(field_in, title=title)
 
-        for i, element in enumerate(self.elements):
+        # Reverse the order of the elements if reverse is True
+        elements = self.elements[::-1] if reverse else self.elements
+
+        for i, element in enumerate(elements):
             # Propagate the field through the current element
-            field_out = element.propagate(field_in)
+            field_out = element.propagate(field_in, reverse=reverse)
 
             # Generate the name for the output field
             try:
@@ -185,12 +191,18 @@ class OpticalSystem:
             # If this is the last element in the system and an imaging method is provided,
             # name the output field accordingly
             if i == len(self.elements) - 1 and imaging_method is not None:
-                if var_no_of_field_in > 9:
-                    name = 'v' + str(var_no_of_field_out) + '_' + imaging_method
+                if reverse:
+                    if var_no_of_field_out > 9:
+                        name = 'v' + str(var_no_of_field_out) + '_field_at_obj_plane'
+                    else:
+                        name = 'v0' + str(var_no_of_field_out) + '_field_at_obj_plane'
                 else:
-                    name = 'v0' + str(var_no_of_field_out) + '_' + imaging_method
+                    if var_no_of_field_out > 9:
+                        name = 'v' + str(var_no_of_field_out) + '_' + imaging_method
+                    else:
+                        name = 'v0' + str(var_no_of_field_out) + '_' + imaging_method
             else:
-                if var_no_of_field_in > 9:
+                if var_no_of_field_out > 9:
                     name = 'v' + str(var_no_of_field_out) + '_field_after_' + element.name
                 else:
                     name = 'v0' + str(var_no_of_field_out) + '_field_after_' + element.name
@@ -209,28 +221,3 @@ class OpticalSystem:
             functions_gpu.plot_field(field_out)
 
         return field_states
-
-    def propagate_reverse(self, field_in, imaging_method=None, plot_fields=False):
-        """
-        Propagate a field through the optical system in reverse order.
-
-        Parameters
-        ----------
-        field_in : Field
-            The initial field to propagate through the system.
-        imaging_method : str, optional
-            The imaging method being used. This is used to name the final field.
-        plot_fields : bool, optional
-            Whether to plot the initial and final fields. Default is False.
-
-        Returns
-        -------
-        dict
-            A dictionary where the keys are the names of the fields at each step of the propagation,
-            and the values are the corresponding Field objects.
-        """
-        # Create a new optical system with the elements in reverse order
-        reverse_system = OpticalSystem(self.elements[::-1])
-
-        # Propagate the field through the reversed system
-        return reverse_system.propagate(field_in, imaging_method=imaging_method, plot_fields=plot_fields)

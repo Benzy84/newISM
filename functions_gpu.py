@@ -108,31 +108,37 @@ def getimage():
 def pad(field_in, padding_size):
     """
     This function pads a given field with zeros.
-
     Parameters:
     - field_in: The input field to be padded.
-    - padding_size: The size of the padding to be added.
-
+    - padding_size: An integer or a tuple/list of size 2 representing the padding size for each dimension.
     Returns:
     - padded_field: The padded field.
     """
     # Create a copy of the input field
     padded_field = copy.deepcopy(field_in)
 
+    # Check if padding_size is a single tensor
+    if isinstance(padding_size, torch.Tensor) and torch.numel(padding_size) == 1:
+        # If so, use the same padding size for both dimensions
+        padding_size = torch.tensor([padding_size.item(), padding_size.item()])
+    elif isinstance(padding_size, (tuple, list)):
+        # If padding_size is a tuple or list, convert it to a tensor
+        padding_size = torch.tensor(padding_size)
+
     # Define the padding vector
-    pading_vec = (padding_size, padding_size, padding_size, padding_size)
+    padding_vec = (padding_size[1], padding_size[1], padding_size[0], padding_size[0])
 
     # Pad the field with zeros
-    padded_field.field = torch.nn.functional.pad(field_in.field, pading_vec).to(device)
+    padded_field.field = torch.nn.functional.pad(field_in.field, padding_vec).to(device)
 
     # Calculate the step size
     step = field_in.step
 
     # Calculate the start and end coordinates in x and y dimensions
-    start_x = torch.min(field_in.x_coordinates) - padding_size * step
-    end_x = torch.max(field_in.x_coordinates) + padding_size * step
-    start_y = torch.max(field_in.y_coordinates) + padding_size * step
-    end_y = torch.min(field_in.y_coordinates) - padding_size * step
+    start_x = torch.min(field_in.x_coordinates) - padding_size[0] * step
+    end_x = torch.max(field_in.x_coordinates) + padding_size[0] * step
+    start_y = torch.max(field_in.y_coordinates) + padding_size[1] * step
+    end_y = torch.min(field_in.y_coordinates) - padding_size[1] * step
 
     # Calculate the dimensions of the padded field
     padded_dim_y, padded_dim_x = torch.tensor(padded_field.field.shape).to(device)

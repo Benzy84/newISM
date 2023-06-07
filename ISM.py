@@ -1,4 +1,4 @@
-
+import copy
 
 from optical_elements import *
 import functions_gpu
@@ -242,140 +242,80 @@ del free_space1, free_space2, lens, iris
 # ########################################################################################################################
 # Get the last field from field_states_wide_field_imaging
 last_field_name = list(field_states_wide_field_imaging.keys())[-1]
-last_field_wide_field_imaging = field_states_wide_field_imaging[last_field_name]
+field_by_wide_field_imaging = field_states_wide_field_imaging[last_field_name]
 
-# Propagate the last field through the optical system in reverse
-field_states_confocal_imaging = optical_system.propagate_reverse(last_field_wide_field_imaging, imaging_method='confocal_imaging')
-
-field_states_reverse = optical_system.propagate_reverse(v04_padded_object, imaging_method='confocal_imaging')
+confocal_field_in = field_by_wide_field_imaging
+del last_field_name, field_by_wide_field_imaging
 
 # row = column = 0
 counter = 0
+points_around_for_ism = 100
 for row in tqdm(np.arange(v02_small_padded_field.field.shape[0])):
     for column in (np.arange(v02_small_padded_field.field.shape[1])):
-        field_states_confocal = optical_system.propagate(field_in_confocal, imaging_method='confocal')
-
-        [x, y] = [column + v08_temp_field.padding_size, row + v08_temp_field.padding_size]
         counter = counter + 1
+        padding_size_x = confocal_field_in.padding_size[0]
+        padding_size_y = confocal_field_in.padding_size[1]
+        [x, y] = [column + padding_size_x, row + padding_size_y]
+        confocal_field_in.field = 0 * confocal_field_in.field
+        confocal_field_in.field[y, x] = 1
 
-        # propagation v from image plane to lens
-        field_in = copy.deepcopy(v08_temp_field)
-        # propagate illumination from image to obj at specific point:
-        field_in.field[y, x] = 1
-        z_out = v00_system.u
-        v09_field_before_lens = prop.distance_z(field_in, z_out, v00_system.wave_length, plot=0)
+        field_states_reversed_confocal_imaging = optical_system.propagate(confocal_field_in, reverse=True)
+        last_field_name = list(field_states_reversed_confocal_imaging.keys())[-1]
+        last_field_reversed_confocal_imaging = field_states_reversed_confocal_imaging[last_field_name]
+        field_states_confocal_imaging = optical_system.propagate(last_field_reversed_confocal_imaging,
+                                                                 imaging_method='confocal_imaging')
+        if counter==1:
+            last_field_name = list(field_states_confocal_imaging.keys())[-1]
+            final_confocal_field = copy.deepcopy(field_states_confocal_imaging[last_field_name])
+            final_confocal_field.field = 0*final_confocal_field.field
+            final_confocal_field.name = 'final_confocal_field'
+            ism_pic_by_down_sampling = copy.deepcopy(final_confocal_field)
+            ism_pic_by_down_sampling.name = 'ism_pic_by_down_sampling'
+            ism_pic_by_Tal = copy.deepcopy(final_confocal_field)
+            ism_pic_by_Tal.name = 'ism_pic_by_Tal'
+            original_dimensions = ism_pic_by_Tal.field.shape
+            padding_size = (original_dimensions[0]//2, original_dimensions[1]//2)
+            padding_size = torch.tensor(padding_size).to(device)
+            padded_field = functions_gpu.pad(ism_pic_by_Tal, padding_size)
+            ism_pic_by_Tal.field = padded_field.field
+            wide_field_by_sum = copy.deepcopy(final_confocal_field)
+            wide_field_by_sum.name = 'wide_field_by_sum'
+            del padded_field
 
-        """
-        v09_field_before_lens = prop.distance_z(field_in, z_out, v00_system.wave_length, plot=1)
-        """
-        del field_in, z_out
-
-        # Lens
-        field_in = copy.deepcopy(v09_field_before_lens)
-        v10_field_after_lens = prop.thin_lens(field_in, v00_system.wave_length, v00_system.lens_radius,
-                                                     v00_system.lens_center_pos, v00_system.f, plot=0)
-        """
-        v10_field_after_lens = prop.thin_lens(field_in, v00_system.wave_length, v00_system.lens_radius, v00_system.lens_center_pos, v00_system.f, plot=1)
-        """
-        del field_in
-
-        # propagation u from lens obj plane
-        field_in = copy.deepcopy(v10_field_after_lens)
-        z_out = torch.tensor(0).to(device)
-        v11_illumination_at_obj = prop.distance_z(field_in, z_out, v00_system.wave_length, plot=0)
-
-        """
-        v11_illumination_at_obj = prop.distance_z(field_in, z_out, v00_system.wave_length, plot=1)
-        """
-        del field_in, z_out
-
-        # applying the confocal illumination
-        v12_illuminated_obj = copy.deepcopy(v11_illumination_at_obj)
-        v12_illuminated_obj.field = v04_padded_object.field * v11_illumination_at_obj.field
-        """
-        fig0, ax0 = plt.subplots()
-        im1 = ax0.imshow(np.abs(v12_illuminated_obj.field.to('cpu').numpy()), extent=v12_illuminated_obj.extent.to('cpu').numpy())
-        plt.show(block=False)
-        del fig0, ax0, im0        
-        """
-
-        ## propagate the illuminated object to image plane
-        # propagation u from object to lens
-        field_in = copy.deepcopy(v12_illuminated_obj)
-        z_out = v00_system.u
-        v13_field_before_lens = prop.distance_z(field_in, z_out, v00_system.wave_length)
-        """
-        v13_field_before_lens = prop.distance_z(field_in, z_out, v00_system.wave_length, plot=1)
-        """
-        del field_in, z_out
-
-        # Lens
-        field_in = copy.deepcopy(v13_field_before_lens)
-        v14_field_after_lens = prop.thin_lens(field_in, v00_system.wave_length, v00_system.lens_radius,
-                                                    v00_system.lens_center_pos, v00_system.f)
-        """
-        v14_field_after_lens = prop.thin_lens(field_in, v00_system.wave_length, v00_system.lens_radius, v00_system.lens_center_pos, v00_system.f, plot=1)
-        """
-        del field_in
-
-
-        # propagation v from lens to o
-        field_in = copy.deepcopy(v14_field_after_lens)
-        z_out = field_in.z + v00_system.v
-        v15_field_at_image = prop.distance_z(field_in, z_out, v00_system.wave_length, plot=0)
-        """
-        v15_field_at_image = prop.distance_z(field_in, z_out, v00_system.wave_length, plot=1)
-        """
-        del field_in, z_out
-
-        v16_final_confocal_field.field[y, x] = v15_field_at_image.field[y, x]
+        field_at_image_plane = field_states_confocal_imaging[last_field_name]
+        final_confocal_field.field[y, x] = field_at_image_plane.field[y, x]
 
         #########################
         #######    ISM    #######
         #########################
-        area_for_ism = v15_field_at_image.field[y - points_around_for_ism:y + 1 + points_around_for_ism,
-                       x - points_around_for_ism:x + 1 + points_around_for_ism]
+
+        # by cropping area
+        area_for_ism = field_at_image_plane.field[y - points_around_for_ism:y + 1 + points_around_for_ism, x - points_around_for_ism:x + 1 + points_around_for_ism]
 
         ##################
         ## resize image ##
         ##################
-
         size = area_for_ism.shape
-        real = torch.randn((1, 1, size[0], size[1])).to(device)
-        img = torch.randn((1, 1, size[0], size[1])).to(device)
-        real[0, 0, :, :] = torch.real(area_for_ism)
-        img[0, 0, :, :] = torch.imag(area_for_ism)
-        real.device
-        a = torchvision.transforms.Resize(ism_dim)
-        b = a(real)
-        c = torch.nn.functional.interpolate(real, ism_dim)
-        d = a(img)
-        e = torch.nn.functional.interpolate(img, ism_dim)
-
-        resized_re_area1 = b[0, 0, :, :]
-        resized_re_area2 = c[0, 0, :, :]
-        resized_im_area1 = d[0, 0, :, :]
-        resized_im_area2 = e[0, 0, :, :]
-        resized_area1 = resized_re_area1 + 1j * resized_im_area1
-        resized_area2 = resized_re_area2 + 1j * resized_im_area2
-        rows_idx_to_cut = torch.arange(0, area_for_ism.shape[0], 2).to(device)
-        columns_idx_to_cut = torch.arange(0, area_for_ism.shape[1], 2).to(device)
+        rows_idx_to_cut = torch.arange(0, size[0], 2).to(device)
+        columns_idx_to_cut = torch.arange(0, size[1], 2).to(device)
         down_sampled_area = area_for_ism[rows_idx_to_cut, :][:, columns_idx_to_cut]
-        del area_for_ism, resized_re_area1, resized_re_area2, resized_im_area1, resized_im_area2
-        del rows_idx_to_cut, columns_idx_to_cut, a, b, c, d, e, real, img, size
 
         start_row = int(y - 0.5 * points_around_for_ism)
         end_row = int(y + 1 + 0.5 * points_around_for_ism)
         start_col = int(x - 0.5 * points_around_for_ism)
         end_col = int(x + 1 + 0.5 * points_around_for_ism)
-        a = v17_ism_pic_by_resize1.field[start_row:end_row, start_col:end_col]
-        v17_ism_pic_by_resize1.field[start_row:end_row, start_col:end_col] += resized_area1
-        v17_ism_pic_by_resize2.field[start_row:end_row, start_col:end_col] += resized_area2
-        v18_ism_pic_by_down_sampling.field[start_row:end_row, start_col:end_col] += down_sampled_area
-        v19_wide_field_by_sum.field += v15_field_at_image.field
+        ism_pic_by_down_sampling.field[start_row:end_row, start_col:end_col] += down_sampled_area
+        start_row = int(y)
+        end_row = start_row + field_at_image_plane.field.shape[0]
+        start_col = int(x)
+        end_col = start_col + field_at_image_plane.field.shape[1]
+        ism_pic_by_Tal.field[start_row:end_row, start_col:end_col] += field_at_image_plane.field
+        wide_field_by_sum.field += field_at_image_plane.field
 
-        del start_row, end_row, start_col, end_col, down_sampled_area, resized_area1, resized_area2, v15_field_at_image, a, x, y
-del counter, column, row, points_around_for_ism, ism_dim
+        # ism_pic_by_Tal[]
+
+        # del start_row, end_row, start_col, end_col, down_sampled_area, resized_area1, resized_area2, v15_field_at_image, a, x, y
+# del counter, column, row, points_around_for_ism, ism_dim
 
 end = time.time()
 time_el = (end - start) / 60
