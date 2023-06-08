@@ -14,23 +14,23 @@ matplotlib.use('TkAgg')
 
 
 # Method 1: Create a field matrix with points
-field_dim_x=100
-field_dim_y=200
-points_value=0
-bg_value=1
-num_x_points=2
-num_y_points=3
-field1 = functions_gpu.create_field(1, field_dim_x=field_dim_x, field_dim_y=field_dim_y, points_value=points_value, bg_value=bg_value, num_x_points=num_x_points, num_y_points=num_y_points)
-del field_dim_x, field_dim_y, points_value, bg_value, num_x_points, num_y_points
-#
-# # Method 2: Create a field from an image
-# field2 = functions_gpu.create_field(2)
-#
+# field_dim_x=100
+# field_dim_y=200
+# points_value=0
+# bg_value=1
+# num_x_points=2
+# num_y_points=3
+# field1 = functions_gpu.create_field(1, field_dim_x=field_dim_x, field_dim_y=field_dim_y, points_value=points_value, bg_value=bg_value, num_x_points=num_x_points, num_y_points=num_y_points)
+# del field_dim_x, field_dim_y, points_value, bg_value, num_x_points, num_y_points
+
+# Method 2: Create a field from an image
+field2 = functions_gpu.create_field(2)
+
 # # Method 3: Cut a part of the picture
 # field3 = functions_gpu.create_field(3)
 
 
-field = field1; del field1
+field = field2; del field2
 
 # Save teh field as png image
 # functions_gpu.save_field_as_image(field)
@@ -262,10 +262,12 @@ for row in tqdm(np.arange(v02_small_padded_field.field.shape[0])):
         field_states_reversed_confocal_imaging = optical_system.propagate(confocal_field_in, reverse=True)
         last_field_name = list(field_states_reversed_confocal_imaging.keys())[-1]
         last_field_reversed_confocal_imaging = field_states_reversed_confocal_imaging[last_field_name]
-        field_states_confocal_imaging = optical_system.propagate(last_field_reversed_confocal_imaging,
+        field_to_propagate_forword = copy.deepcopy(last_field_reversed_confocal_imaging)
+        field_to_propagate_forword.field = field_to_propagate_forword.field * v04_padded_object.field
+        field_states_confocal_imaging = optical_system.propagate(field_to_propagate_forword,
                                                                  imaging_method='confocal_imaging')
+        last_field_name = list(field_states_confocal_imaging.keys())[-1]
         if counter==1:
-            last_field_name = list(field_states_confocal_imaging.keys())[-1]
             final_confocal_field = copy.deepcopy(field_states_confocal_imaging[last_field_name])
             final_confocal_field.field = 0*final_confocal_field.field
             final_confocal_field.name = 'final_confocal_field'
@@ -320,6 +322,12 @@ for row in tqdm(np.arange(v02_small_padded_field.field.shape[0])):
 end = time.time()
 time_el = (end - start) / 60
 print(time_el)
+
+functions_gpu.plot_field(final_confocal_field)
+functions_gpu.plot_field(ism_pic_by_down_sampling)
+functions_gpu.plot_field(ism_pic_by_Tal)
+functions_gpu.plot_field(wide_field_by_sum)
+
 
 v22_confocal_fft = torch.fft.fftshift(torch.fft.fft2(abs(v16_final_confocal_field.field)))
 v23_ism_fft1 = torch.fft.fftshift(torch.fft.fft2(abs(v17_ism_pic_by_resize1.field)))
